@@ -1,0 +1,78 @@
+version: "3"
+
+vars:
+  db_host: "localhost"
+  db_port: "5435"
+  db_name: "sso"
+  db_user: "postgres"
+  db_password: "postgres"
+  sslmode: "disable"
+  migrations_table: "schema_migrations"
+
+  #postgres://postgres:postgres@localhost:5435/sso?sslmode=disable&x-migrations-table=schema_migrations
+
+  YOUR_DATABASE_URL: '"postgres://{{ .db_user }}:{{ .db_password }}@{{ .db_host }}:{{ .db_port }}/{{ .db_name }}?sslmode={{ .sslmode }}"'
+
+  init: "1_init"
+
+  add_is_admin_column_to_users: "2_add_is_admin_column_to_users_tbl"
+
+  add_app: "3_add_app"
+
+  PATH_TO_YOUR_MIGRATIONS: "./migrations"
+
+
+tasks:
+  main_migartion:
+    aliases:
+      - main
+    desc: ""
+    cmds:
+      - go run ./cmd/migrator --storage-path=postgres:postgres@localhost:5435/sso --migrations-path=./migrations
+
+
+  down_migration:
+    aliases:
+      - down_migration
+      - down
+    desc: ""
+    cmds:
+      - migrate -path {{ .PATH_TO_YOUR_MIGRATIONS }} -database {{ .YOUR_DATABASE_URL }} down
+
+  up_migration:
+    aliases:
+      - up_migration
+      - up
+    desc: ""
+    cmds:
+      - migrate -path {{ .PATH_TO_YOUR_MIGRATIONS }} -database {{ .YOUR_DATABASE_URL }} up
+
+  init_migration:
+    aliases:
+      - init
+    desc: "Create migrations to dir sso/migration"
+    cmds:
+      - migrate create -ext sql -dir {{ .PATH_TO_YOUR_MIGRATIONS }} -seq {{ .init }}
+
+  add_is_admin_column_to_users_migration:
+    aliases:
+      - add_admin
+    desc: "Create migrations to dir sso/migration"
+    cmds:
+      - migrate create -ext sql -dir {{ .PATH_TO_YOUR_MIGRATIONS }} -seq {{ .add_is_admin_column_to_users }}
+
+  add_app_migration:
+    aliases:
+      - add_app
+    desc: "Create migrations to dir sso/migration"
+    cmds:
+      - migrate create -ext sql -dir {{ .PATH_TO_YOUR_MIGRATIONS }} -seq {{ .add_app }}
+
+
+
+  check_db_on_docker:
+    aliases:
+      - check_tables
+    desc: '\c sso - проверить таблицы. \q - выйти.'
+    cmds:
+      - docker compose -f docker-compose.dev.yml exec db psql -U postgres -d postgres
